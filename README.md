@@ -6,7 +6,7 @@
 
 투수가 던진 공이 마운드에서 홈플레이트까지 이동하는 궤적을 3D로 시뮬레이션하고, 측풍이 궤적에 미치는 영향을 정량적으로 분석하는 웹 애플리케이션입니다.
 
-![Demo Screenshot](docs/screenshot.png)
+![Demo Screenshot](data/screenshot.png)
 
 ## Features
 
