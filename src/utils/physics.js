@@ -25,7 +25,6 @@ export const CONSTANTS = {
 
   // 공기역학 계수
   DRAG_COEFFICIENT: 0.35,     // 항력계수 (야구공 기준)
-  LIFT_COEFFICIENT_BASE: 0.2, // 기본 양력계수
 };
 
 // 한국 월별 환경 조건 (평균값)
@@ -85,6 +84,7 @@ export function calculateAirDensity(temperature, humidity) {
 
 /**
  * 마그누스 힘 계산
+ * 실제 야구공 물리학 기반 - Nathan (2008) 연구 참조
  * @param {number} velocity - 공의 속도 (m/s)
  * @param {number} spinRate - 회전수 (RPM)
  * @param {number} spinAxis - 회전축 (도, 0-360)
@@ -92,25 +92,30 @@ export function calculateAirDensity(temperature, humidity) {
  * @returns {Object} x, y, z 방향 마그누스 힘 (N)
  */
 export function calculateMagnusForce(velocity, spinRate, spinAxis, airDensity) {
-  const { BALL_RADIUS, BALL_AREA, LIFT_COEFFICIENT_BASE } = CONSTANTS;
+  const { BALL_RADIUS, BALL_AREA } = CONSTANTS;
 
   // 회전 속도를 rad/s로 변환
   const omega = (spinRate * 2 * Math.PI) / 60;
 
-  // 스핀 파라미터 (무차원)
+  // 스핀 파라미터 S = (omega * R) / V (무차원)
+  // 일반적인 야구공: S ≈ 0.1 ~ 0.3
   const spinParameter = (omega * BALL_RADIUS) / velocity;
 
-  // 양력 계수 (스핀 파라미터에 비례)
-  const Cl = LIFT_COEFFICIENT_BASE * spinParameter * 10;
+  // 양력 계수 Cl - Nathan의 실험 데이터 기반
+  // Cl ≈ 0.09 + 0.6 * S (낮은 스핀 파라미터에서)
+  // 최대 Cl ≈ 0.35 정도로 제한
+  const Cl = Math.min(0.09 + 0.6 * spinParameter, 0.35);
 
-  // 마그누스 힘의 크기
+  // 마그누스 힘의 크기: F = 0.5 * ρ * v² * Cl * A
+  // 154km/h (42.8m/s), 2200RPM 기준 약 0.3~0.4N 정도
   const magnusMagnitude = 0.5 * airDensity * velocity * velocity * Cl * BALL_AREA;
 
   // 스핀 축을 라디안으로 변환
   const axisRad = (spinAxis * Math.PI) / 180;
 
-  // 180도 = 순수 백스핀 (위쪽 힘)
+  // 180도 = 순수 백스핀 (위쪽 힘) - 중력의 약 20-30% 상쇄
   // 90도 = 사이드스핀 (옆쪽 힘)
+  // 0/360도 = 순수 탑스핀 (아래쪽 힘)
   // 회전축에 따른 힘의 방향 분해
   const forceZ = magnusMagnitude * Math.cos(axisRad - Math.PI); // 상하
   const forceX = magnusMagnitude * Math.sin(axisRad - Math.PI); // 좌우
